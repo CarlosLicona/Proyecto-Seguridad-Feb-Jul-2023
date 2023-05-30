@@ -1,0 +1,32 @@
+version: '3.7'
+
+      
+services:
+  app:
+    image: demo_segura
+    restart: always
+    container_name: app
+    volumes:
+      - ./app:/code
+    depends_on:
+      - bd 
+
+  bd:
+    image: mariadb
+    restart: always
+    container_name: bd
+    env_file:
+      - bd.env
+    volumes:
+      - ./data:/var/lib/mysql
+      
+  web:
+    image: nginx
+    restart: always
+    container_name: web
+    ports:
+      - 9999:80
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./app/static:/static
+

@@ -1,0 +1,59 @@
+{% extends 'basePer.html' %}
+
+{% block titulo %}
+Monitoreo
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/prueba.js"></script>
+{% endblock %}
+
+{% block estilos %}
+<link href="/static/css/columnas.css" rel="stylesheet">
+{% endblock %}
+
+{% block encabezado %}
+Monitoreo  de Servicios
+{% endblock %}
+
+{% block nav %}
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="https://www.uv.mx">
+      <img src="/static/images/logoUV.png" alt="" width="30" height="24" class="d-inline-block align-text-top">
+      Ir a UV
+    </a>
+    <a class="navbar-brand" href="/registro">
+      <img src="/static/images/registro.png" alt="" width="30" height="24" class="d-inline-block align-text-top">
+      Registro de servicios
+    </a>
+    <a class="navbar-brand" href="/usuarios">
+      <img src="/static/images/usuario.png" alt="" width="30" height="24" class="d-inline-block align-text-top">
+      Registro de Usuarios
+    </a>
+  </div>
+</nav>
+{% endblock %}
+
+
+{% block contenido %}
+<body background="/static/images/Imagen-de-fondo-html.jpg"></body>
+
+<div> 
+    <h1>Monitoreo de servicios en tiempo real</h1>
+</div>
+
+<div class="fila">
+  <div id="servicios" class="col-5" style="background-color: rgb(36, 94, 209); font-size: x-large; color: aliceblue;">
+  </div>
+  <div id="estados" class="col-7">
+  </div>
+</div>
+
+{% endblock %}
+
+{% block footer %}
+<br><footer>
+  *Univesidad Veracruzana 2023
+</footer>
+{% endblock %}
