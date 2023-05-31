@@ -1,0 +1,52 @@
+version: '3.7'
+
+      
+services:
+  app:
+    image: demo_segura
+    restart: always
+    container_name: app
+    volumes:
+      - ./app:/code
+    depends_on:
+      - bd 
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      secret_key: ${secret_key}
+      db_name: ${db_name}
+      db_user: ${db_user}
+      db_host: ${db_host}
+      db_port: ${db_port}
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "1024M" 
+  bd:
+    image: mariadb
+    restart: always
+    container_name: bd
+    environment:
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        MYSQL_DATABASE: ${db_name}
+    volumes:
+      - ./data:/var/lib/mysql
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "1024M" 
+  web:
+    image: nginx
+    restart: always
+    container_name: web
+    ports:
+      - 9999:80
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./app/static:/static
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "1024M"   

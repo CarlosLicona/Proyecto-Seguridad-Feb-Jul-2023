@@ -1,0 +1,5 @@
+django==4.2
+mysqlclient==2.1.1
+gunicorn==20.1.0
+ccrypt==0.10
+flask-bcrypt
