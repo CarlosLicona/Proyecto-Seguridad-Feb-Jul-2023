@@ -461,7 +461,6 @@ def comprobar_ip(valor):
 
 
 
-@csrf_exempt
 def registrar_estado(request):
     """
     Esta función registra el estado de una solicitud y su dirección IP en una base de datos si la
@@ -472,8 +471,8 @@ def registrar_estado(request):
     :return: Si el método de solicitud no es POST, la función devuelve un JsonResponse con {'status':
     'False'}. 
     """
-    if request.method == 'POST':
-        estado = request.POST.get('estado', 'Desconocido❔')
+    if request.method == 'GET':
+        estado = request.GET.get('estado', 'Desconocido❔')
         ip = get_client_ip(request)
         if comprobar_ip(ip) == True:
             if not estado.strip():
