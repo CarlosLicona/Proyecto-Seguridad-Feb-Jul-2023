@@ -30,7 +30,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:9999']
+CSRF_TRUSTED_ORIGINS = ['https://seguridad']
 
 # Application definition
 
