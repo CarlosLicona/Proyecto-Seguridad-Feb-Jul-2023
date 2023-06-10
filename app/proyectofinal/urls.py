@@ -32,6 +32,10 @@ urlpatterns = [
     path('leer_estados', vistas.leer_estados),
     path('control_estados', vistas.control_estados),
     path('logout', vistas.logout_view),
+    path('eliminar_User', vistas.eliminnar_usuario),
+    path('eliminar_Ser', vistas.eliminar_servidor),
+    path('actualizar_User', vistas.modificar_usuario),
+    path('actualizar_Ser', vistas.modificar_servicio),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

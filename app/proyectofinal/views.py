@@ -108,8 +108,8 @@ def registrar_usuario(request):
             errores.append('El Usuario está vacío')
         if contraseña.strip() == '':
             errores.append('El password está vacío')
-        # if existe_usuario(nombre_usuario.strip()):
-        #     errores.append('El usuario ya existe')
+        if existe_usuario(nombre_usuario.strip()):
+            errores.append('El usuario ya existe')
         if contra_valida(contraseña.strip()):
             errores.append('La contraseña no tiene un formato valido ( mínimo 10 carácteres, mayúsculas, minúsuclas, dígitos, al menos un carácter especial )')
         if errores:
@@ -123,8 +123,112 @@ def registrar_usuario(request):
     
 
 #------------------------------------------------------------------------------
+#Eliminar Usuario
+
+@decoradores.logueado
+def eliminnar_usuario(request):
 
 
+    t = 'eliminarUser.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        nombre_usuario = request.POST.get('nombre_usuario', '')
+
+        errores = []
+        if nombre_usuario.strip() == '':
+            errores.append('El Usuario está vacío')
+        if not existe_usuario(nombre_usuario.strip()):
+            errores.append('El usuario no existe')
+        if errores:
+            return render(request, t, {'errores': errores})
+                
+
+        usuario_eliminar = models.Usuario.objects.get(nombre_usuario=nombre_usuario)
+        usuario_eliminar.delete()
+        return redirect('/monitoreo')
+
+#-----------------------------------------------------------------------------
+
+#modificar usuario 
+
+def modificar_usuario(request):
+    """
+    Restablece un registro de intentos con valores por defecto.
+
+    Keyword Arguments:
+    registro:models.Intentos --
+    ahora:datetime hora actual del sistema
+    returns: None 
+    """
+
+    t = 'actualizarUser.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        nombre_usuario = request.POST.get('nombre_usuario', '')
+        contraseña = request.POST.get('contraseña', '')
+
+        errores = []
+        if nombre_usuario.strip() == '':
+            errores.append('El Usuario está vacío')
+        if contraseña.strip() == '':
+            errores.append('El password está vacío')
+        if not existe_usuario(nombre_usuario.strip()):
+            errores.append('El usuario a modificar no existe')
+        if contra_valida(contraseña.strip()):
+            errores.append('La contraseña no tiene un formato valido ( mínimo 10 carácteres, mayúsculas, minúsuclas, dígitos, al menos un carácter especial )')
+        if errores:
+            return render(request, t, {'errores': errores})
+                
+
+        hash = generar_hashed(contraseña.strip())
+        usuario_modificar = models.Usuario.get(nombre_usuario=nombre_usuario.strip())
+        usuario_modificar.contraseña = hash.strip()
+        usuario_modificar.save()
+        return redirect('/monitoreo')
+    
+
+   
+
+
+#---------------------------------------------------------------------------------
+#Modificar servicio
+
+@decoradores.logueado
+def modificar_servicio(request):
+
+    t = 'actualizarSer.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        hostname = request.POST.get('hostname', '')
+        ip = request.POST.get('ip', '')
+        password = request.POST.get('password', '')
+
+        errores = []
+        if hostname.strip() == '':
+            errores.append('El hostname está vacío')
+        if ip.strip() == '':
+            errores.append('La dirección ip está vacía')
+        if password.strip() == '':
+            errores.append('El password está vacío')
+        if formato_ip(ip.strip()):
+            errores.append('La dirección ip no tiene un formato valido')
+        if not ya_existe_ip(ip.strip()):
+            errores.append('La dirección IP no esta registrada')
+        if errores:
+            return render(request, t, {'errores': errores})
+
+        servicio_actualizar = models.Servicio(ip=ip.strip())
+        servicio_actualizar.hostname = hostname.strip()
+        servicio_actualizar.save()
+        servicio_actualizar.password = password.strip()
+        servicio_actualizar.save()
+        return redirect('/monitoreo')
+
+
+#------------------------------------------------------------------------------
 
 def recuperar_info_ip(ip:str) -> models.Intentos:
     """
@@ -365,8 +469,34 @@ def registrar_servicio(request):
         return redirect('/monitoreo')
 
 
+#------------------------------------------------------------------------------
+#Eliminar Servidor
 
-#---------------------------------------------------------------------------------------------------------------------------------
+@decoradores.logueado
+def eliminar_servidor(request):
+
+
+    t = 'eliminarSer.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        ip = request.POST.get('ip', '')
+
+        errores = []
+        if ip.strip() == '':
+            errores.append('La dirección ip está vacía')
+        if formato_ip(ip.strip()):
+            errores.append('La dirección ip no tiene un formato valido')
+        if not ya_existe_ip(ip.strip()):
+            errores.append('La dirección IP  no esta registrada')
+        if errores:
+            return render(request, t, {'errores': errores})
+
+        servicio_eliminar = models.Servicio.objects.get(ip=ip)
+        servicio_eliminar.delete()
+        return redirect('/monitoreo')
+                
+#----------------------------------------------------------------------------------
 
 def get_client_ip(request):
     """

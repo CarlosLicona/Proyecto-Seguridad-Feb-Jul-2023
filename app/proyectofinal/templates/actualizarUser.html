@@ -1,0 +1,83 @@
+{% extends 'basePer.html' %}
+
+{% block titulo %}
+Actualizaciòn de registro de Usuarios
+{% endblock %}
+
+{% block estilos %}
+<link href="/static/css/columnas.css" rel="stylesheet">
+{% endblock %}
+
+{% block encabezado %}
+Actualizaciòn Usuarios
+{% endblock %}
+
+{% block nav %}
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="https://www.uv.mx">
+      <img src="/static/images/logoUV.png" alt="" width="30" height="24" class="d-inline-block align-text-top">
+      Ir a UV
+    </a>
+
+
+    <a class="navbar-brand" href="/monitoreo">
+      <img src="/static/images/regresar.png" alt="" width="30" height="24" class="d-inline-block align-text-top">
+      Regresar
+    </a>
+  </div>
+</nav>
+
+
+{% endblock %}
+
+{% block contenido %}
+<body background="/static/images/Imagen-de-fondo-html.jpg"></body>
+
+{% if errores %}
+<div id="erorres" style="color: white">
+  <ul>
+    {% for error in errores %}
+    <li>{{ error }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<form id="formulario" action="/usuarios" method="POST" class="fila">
+  {% csrf_token %} 
+  <div class="col-4"></div>
+  <fieldset class="col-4" style="background-color: rgb(36, 94, 209); font-size: x-large; color: aliceblue;">
+    <legend style="font-size: x-large; color: aliceblue;">Actualizaciòn de Usuarios</legend>
+    <div class="form-group" class="fila">
+      <div>
+	<label for="nombre_usuario">Usuario a Modificar:</label>
+      </div>
+      <div>
+	<input type="text" name="nombre_usuario" id="nombre_usuario"  placeholder="Ingresa nombre usuario" class="col-11">
+      </div>
+    </div>
+
+    <div class="form-group" class="fila">
+      <div>
+        <label for="contraseña">Contraseña Nueva:</label>
+      </div>
+      <div>
+        <input type="password" name="contraseña" id="contraseña"  placeholder="Ingresa la contraseña" class="col-11">
+      </div>
+    </div>
+
+
+    <br><button type="submit" class="btn btn-success">Actualizar</button>
+    
+  </fieldset>
+  <div class="col-4"></div>
+</form>
+
+{% endblock %}
+
+{% block footer %}
+<footer style="color: aliceblue;"><br>
+    *Univesidad Veracruzana 2023
+</footer>
+{% endblock %}

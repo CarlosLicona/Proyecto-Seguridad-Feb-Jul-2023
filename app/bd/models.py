@@ -6,7 +6,7 @@ class Usuario(models.Model):
 
 class Servicio(models.Model):
     hostname = models.CharField(max_length=30)
-    ip = models.CharField(max_length=20)
+    ip = models.CharField(max_length=20, primary_key=True)
     password = models.CharField(max_length=30)
 
 class Estados(models.Model):
