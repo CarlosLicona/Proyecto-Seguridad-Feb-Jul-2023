@@ -3,3 +3,5 @@ mysqlclient==2.1.1
 gunicorn==20.1.0
 ccrypt==0.10
 flask-bcrypt
+pyotp==2.8.0
+requests==2.31.0

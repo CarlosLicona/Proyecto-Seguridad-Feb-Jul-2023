@@ -12,12 +12,13 @@ from datetime import datetime
 import crypt
 import os
 import base64
-
+import pyotp #Para generar códigos OTP
+import requests
 #-----------------------------------------------------------------------------
 
 # Practica 5 
 
-
+usuario_global = None
 def existe_usuario(usuario):
     """
     La función verifica si un usuario existe en la base de datos por su nombre de usuario y devuelve un
@@ -102,12 +103,17 @@ def registrar_usuario(request):
     elif request.method == 'POST':
         nombre_usuario = request.POST.get('nombre_usuario', '')
         contraseña = request.POST.get('contraseña', '')
-
+        chat_id = request.POST.get('chat_id', '')
+        bot_id = request.POST.get('bot_id', '')
         errores = []
         if nombre_usuario.strip() == '':
             errores.append('El Usuario está vacío')
         if contraseña.strip() == '':
             errores.append('El password está vacío')
+        if chat_id.strip() == '':
+            errores.append('El chat ID está vacío')
+        if bot_id.strip() == '':
+            errores.append('El bot ID está vacío')
         # if existe_usuario(nombre_usuario.strip()):
         #     errores.append('El usuario ya existe')
         if contra_valida(contraseña.strip()):
@@ -117,14 +123,119 @@ def registrar_usuario(request):
                 
 
         hash = generar_hashed(contraseña.strip())
-        usuario_nuevo = models.Usuario(nombre_usuario=nombre_usuario.strip(),contraseña=hash.strip())
+        usuario_nuevo = models.Usuario(nombre_usuario=nombre_usuario.strip(),contraseña=hash.strip(), chat_id = chat_id.strip(), bot_token = bot_id.strip() )
         usuario_nuevo.save()
         return redirect('/monitoreo')
     
+    
 
 #------------------------------------------------------------------------------
+#Eliminar Usuario
+
+@decoradores.logueado_admin
+def eliminnar_usuario(request):
 
 
+    t = 'eliminarUser.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        nombre_usuario = request.POST.get('nombre_usuario', '')
+
+        errores = []
+        if nombre_usuario.strip() == '':
+            errores.append('El Usuario está vacío')
+        if not existe_usuario(nombre_usuario.strip()):
+            errores.append('El usuario no existe')
+        if errores:
+            return render(request, t, {'errores': errores})
+                
+
+        usuario_eliminar = models.Usuario.objects.get(nombre_usuario=nombre_usuario)
+        usuario_eliminar.delete()
+        return redirect('/monitoreo')
+
+#-----------------------------------------------------------------------------
+
+#modificar usuario 
+@decoradores.logueado
+def modificar_usuario(request):
+    """
+    Restablece un registro de intentos con valores por defecto.
+
+    Keyword Arguments:
+    registro:models.Intentos --
+    ahora:datetime hora actual del sistema
+    returns: None 
+    """
+
+    t = 'actualizarUser.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        nombre_usuario = request.POST.get('nombre_usuario', '')
+        contraseña = request.POST.get('contraseña', '')
+
+        errores = []
+        if nombre_usuario.strip() == '':
+            errores.append('El Usuario está vacío')
+        if contraseña.strip() == '':
+            errores.append('El password está vacío')
+        if not existe_usuario(nombre_usuario.strip()):
+            errores.append('El usuario a modificar no existe')
+        if contra_valida(contraseña.strip()):
+            errores.append('La contraseña no tiene un formato valido ( mínimo 10 carácteres, mayúsculas, minúsuclas, dígitos, al menos un carácter especial )')
+        if errores:
+            return render(request, t, {'errores': errores})
+                
+
+        hash = generar_hashed(contraseña.strip())
+        usuario_modificar = models.Usuario.get(nombre_usuario=nombre_usuario.strip())
+        usuario_modificar.contraseña = hash.strip()
+        usuario_modificar.save()
+        return redirect('/monitoreo')
+    
+
+   
+
+
+#---------------------------------------------------------------------------------
+#Modificar servicio
+
+@decoradores.logueado_admin
+def modificar_servicio(request):
+
+    t = 'actualizarSer.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        hostname = request.POST.get('hostname', '')
+        ip = request.POST.get('ip', '')
+        password = request.POST.get('password', '')
+
+        errores = []
+        if hostname.strip() == '':
+            errores.append('El hostname está vacío')
+        if ip.strip() == '':
+            errores.append('La dirección ip está vacía')
+        if password.strip() == '':
+            errores.append('El password está vacío')
+        if formato_ip(ip.strip()):
+            errores.append('La dirección ip no tiene un formato valido')
+        if not ya_existe_ip(ip.strip()):
+            errores.append('La dirección IP no esta registrada')
+        if errores:
+            return render(request, t, {'errores': errores})
+
+        servicio_actualizar = models.Servicio(ip=ip.strip())
+        servicio_actualizar.hostname = hostname.strip()
+        servicio_actualizar.save()
+        servicio_actualizar.password = password.strip()
+        servicio_actualizar.save()
+        return redirect('/monitoreo')
+
+
+#------------------------------------------------------------------------------
 
 def recuperar_info_ip(ip:str) -> models.Intentos:
     """
@@ -246,6 +357,96 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
+def token_correcto(token,usuario):
+    try: 
+        registro = models.Usuario.objects.get(nombre_usuario=usuario)
+        token_bd = registro.token_otp
+
+        if (token_bd != '' or token != ''):
+            if (token_bd == token) :
+                return True
+            else:
+                return False
+        else:
+            return False
+    except:
+        return False
+
+def eliminar_token(request):
+    usuario = request.session.get('usuario')
+    usuario = models.Usuario.objects.get(nombre_usuario=usuario)
+    usuario.token_otp = ''
+    usuario.save()
+
+def generar_token():
+    # Generar un secreto aleatorio para el OTP
+    secreto = pyotp.random_base32()
+
+    # Crear un objeto TOTP utilizando el secreto generado
+    totp = pyotp.TOTP(secreto)
+
+    # Obtener el código OTP actual
+    codigo_otp = totp.now()
+    return codigo_otp
+
+def enviar_token(request):
+    usuario = request.session.get('usuario')
+    usuario = models.Usuario.objects.get(nombre_usuario=usuario)
+    bot_token = usuario.bot_token
+
+    chat_id = usuario.chat_id
+
+    mensaje = generar_token()
+    usuario.token_otp = mensaje
+    usuario.save()
+    send_text = 'https://api.telegram.org/bot' + bot_token + '/sendMessage?chat_id=' + chat_id + '&parse_mode=Markdown&text=' + ' Su token para loguearse es el siguiente: '+ mensaje
+    requests.get(send_text)
+
+    return HttpResponse("Mensaje enviado a Telegram")
+
+decoradores.logueado
+def login_token(request):
+    """
+    Esta función maneja el proceso de inicio de sesión, verifica las credenciales del usuario y redirige
+    a diferentes páginas según el rol del usuario.
+    
+    :param request: El objeto de solicitud representa la solicitud HTTP actual que el usuario ha
+    realizado al servidor. 
+    :return: una plantilla HTML renderizada para la página de inicio de sesión. 
+    """
+    t = 'login_token.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        errores = []
+        usuario = request.session.get('usuario')
+        token_otp = request.POST.get('token_otp')
+        print(token_otp)
+        if puede_intentar_loguearse(request):
+
+            if not token_otp.strip():
+                errores.append('No se pasó el token correctamente')
+                return render(request, t, {'errores': errores})
+            
+            if not token_correcto(token_otp,usuario):
+                errores.append('Token inválido')
+                return render(request, t, {'errores': errores})
+
+            request.session['logueado'] = True
+            request.session['usuario'] = usuario
+            if (usuario == 'admin'):
+                global usuario_global
+                usuario_global = usuario
+                eliminar_token(request)
+                
+                return redirect('/monitoreo') 
+            else:
+                eliminar_token(request)
+                usuario_global = usuario
+                return redirect('/servidor')
+        else:
+            errores.append('Ya no tienes intentos, espera unos minutos')
+            return render(request, t, {'errores': errores})
 
 def login(request):
     """
@@ -263,7 +464,6 @@ def login(request):
         errores = []
         usuario = request.POST.get('user', '')
         contra = request.POST.get('password', '')
-
         if puede_intentar_loguearse(request):
 
             if not usuario.strip() or not contra.strip():
@@ -277,9 +477,9 @@ def login(request):
             request.session['logueado'] = True
             request.session['usuario'] = usuario
             if (usuario == 'admin'):
-                return redirect('/monitoreo') 
+                return redirect('/token') 
             else:
-                return redirect('/servidor')
+                return redirect('/token')
         else:
             errores.append('Ya no tienes intentos, espera unos minutos')
             return render(request, t, {'errores': errores})
@@ -294,7 +494,7 @@ def logout_view(request):
     
     :param request: El parámetro de solicitud es un objeto que representa la solicitud HTTP actual.
     :return: una respuesta de redireccionamiento a la URL '/login'.
-    """
+    """ 
     logout(request)
     return redirect('/login')
 
@@ -327,7 +527,20 @@ def ya_existe_ip(dip:str):
         return False
     return True
 
-@decoradores.logueado
+def ya_existe_ip_relacion(dip:str):
+    """
+    La función comprueba si una dirección IP dada ya existe en una tabla de base de datos.
+    
+    :param dip: El parámetro "dip" es una cadena que representa una dirección IP
+    :type dip: str
+    :return: La función `ya_existe_ip` devuelve un valor booleano. 
+    """
+    registros = models.Relacion.objects.filter(ip=dip)
+    if len(registros) == 0:
+        return False
+    return True
+
+@decoradores.logueado_admin
 def registrar_servicio(request):
     """
     Esta función registra un nuevo servicio con un nombre de host, una dirección IP y una contraseña, y
@@ -365,8 +578,69 @@ def registrar_servicio(request):
         return redirect('/monitoreo')
 
 
+#------------------------------------------------------------------------------
+#Eliminar Servidor
 
-#---------------------------------------------------------------------------------------------------------------------------------
+@decoradores.logueado_admin
+def eliminar_servidor(request):
+
+
+    t = 'eliminarSer.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        ip = request.POST.get('ip', '')
+
+        errores = []
+        if ip.strip() == '':
+            errores.append('La dirección ip está vacía')
+        if formato_ip(ip.strip()):
+            errores.append('La dirección ip no tiene un formato valido')
+        if not ya_existe_ip(ip.strip()):
+            errores.append('La dirección IP  no esta registrada')
+        if errores:
+            return render(request, t, {'errores': errores})
+
+        servicio_eliminar = models.Servicio.objects.get(ip=ip)
+        servicio_eliminar.delete()
+        return redirect('/monitoreo')
+                
+@decoradores.logueado_admin
+def relacion(request):
+    """
+    Esta función registra un nuevo servicio con un nombre de host, una dirección IP y una contraseña, y
+    busca errores antes de guardar el nuevo servicio en la base de datos.
+    
+    :param request: El objeto de solicitud representa la solicitud HTTP que el usuario realizó para
+    acceder a la vista
+    :return: Si el método de solicitud es GET, la función devuelve la plantilla HTML renderizada
+    'registroSer.html'.
+    """
+    t = 'relacion.html'
+    if request.method == 'GET':
+        return render(request, t)
+    elif request.method == 'POST':
+        nombre_usuario = request.POST.get('nombre_usuario', '')
+        ip = request.POST.get('ip', '')
+
+        errores = []
+        if nombre_usuario.strip() == '':
+            errores.append('El nombre de usuario está vacío')
+        if ip.strip() == '':
+            errores.append('La dirección ip está vacía')
+        if formato_ip(ip.strip()):
+            errores.append('La dirección ip no tiene un formato valido')
+        if ya_existe_ip_relacion(ip.strip()):
+            errores.append('La dirección IP  ya fue registrada')
+        if errores:
+            return render(request, t, {'errores': errores})
+        usuario = models.Usuario.objects.get(nombre_usuario=nombre_usuario.strip())
+        ip_obj = models.Servicio.objects.get(ip=ip.strip())
+        relacion_nueva = models.Relacion(nombre_usuario=usuario, ip=ip_obj)
+        relacion_nueva.save()
+        return redirect('/monitoreo')      
+
+#----------------------------------------------------------------------------------
 
 def get_client_ip(request):
     """
@@ -384,7 +658,7 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-def serializar_servicio(serv):
+def serializar_servicio(ser,request):
     """
     La función serializa una lista de objetos de servicio en una lista de diccionarios que contienen sus
     atributos de nombre de host, IP y contraseña.
@@ -393,10 +667,25 @@ def serializar_servicio(serv):
     :return: una lista de diccionarios, donde cada diccionario representa un servicio y contiene las
     claves 'hostname', 'ip' y 'password' con sus respectivos valores.
     """
+    global usuario_global
     resultado = []
-    for servicio in serv:
-        d_servicio = {'hostname': servicio.hostname, 'ip': servicio.ip, 'password': servicio.password}
-        resultado.append(d_servicio)
+    #usuario = request.session.get('usuario')
+    #print(usuario)
+    relacion = models.Relacion.objects.all()
+    
+    datos = relacion.get(nombre_usuario=usuario_global)
+    datos_ip = str(datos.ip).split()[1][1:-1]
+    for servicio in ser:
+        if servicio.ip == datos.ip.ip:
+            print("servicio .ip ")
+            print(servicio.ip)
+            print("Relacion .ip ")
+            print(datos.ip.ip)
+            print(servicio.hostname)
+            d_servicio = {'hostname': servicio.hostname, 'ip': servicio.ip, 'password': servicio.password}
+            #d_servicio = {'nombre_usuario': relacion.nombre_usuario, 'ip': relacion.ip}
+            resultado.append(d_servicio)
+    print(resultado)
     return resultado
 
 def buscar_servicios(request):
@@ -409,8 +698,10 @@ def buscar_servicios(request):
     :return: Una respuesta JSON que contiene todos los servicios de la base de datos, serializada
     mediante la función `serializar_servicio`. 
     """
+
     servicios = models.Servicio.objects.all()
-    return JsonResponse(serializar_servicio(servicios), safe=False)
+        
+    return JsonResponse(serializar_servicio(servicios,request), safe=False)
 
 
 
@@ -423,11 +714,20 @@ def serializar_estados(estados):
     :return: una lista de diccionarios, donde cada diccionario contiene los atributos "estado" e "ip" de
     un objeto en la lista "estados".
     """
+    global usuario_global
     resultado = []
+    #usuario = request.session.get('usuario')
+    print(usuario_global)
+    relacion = models.Relacion.objects.all()
+    
+    datos = relacion.get(nombre_usuario=usuario_global)
+
     for estado in estados:
-        d_estado = {'estado': estado.estado, 'ip': estado.ip}
-        resultado.append(d_estado)
+        if estado.ip == datos.ip.ip:
+            d_estado = {'cpu_info': estado.cpu_info, 'memoria_info':estado.memoria_info, 'disco_info':estado.disco_info,'ip': estado.ip}
+            resultado.append(d_estado)
     return resultado
+
 
 
 
@@ -442,6 +742,7 @@ def leer_estados(request):
     """
     estados = models.Estados.objects.all()
     return JsonResponse(serializar_estados(estados), safe=False)
+
 
 
 
@@ -472,12 +773,17 @@ def registrar_estado(request):
     'False'}. 
     """
     if request.method == 'GET':
-        estado = request.GET.get('estado', 'Desconocido❔')
+        cpu_info = request.GET.get('cpu_info', 'Desconocido')
+        memoria_info = request.GET.get('memoria_info', 'Desconocido')
+        disco_info = request.GET.get('disco_info', 'Desconocido')
         ip = get_client_ip(request)
-        if comprobar_ip(ip) == True:
-            if not estado.strip():
+        print(cpu_info + memoria_info + disco_info)
+        print(ip)
+        if comprobar_ip(ip):
+            if not cpu_info.strip() or not memoria_info.strip() or not disco_info.strip():
                 return JsonResponse({'status': 'False'})
-            models.Estados(estado=estado, ip=ip).save()
+            
+            models.Estados(disco_info=disco_info, memoria_info=memoria_info, cpu_info=cpu_info, ip=ip).save()
             return JsonResponse({'status': 'True'})
     
     return JsonResponse({'status': 'False'})
@@ -497,12 +803,14 @@ def control_estados(request):
     """
     estados = models.Estados.objects.all()
     for object in estados:
-        object.estado='Desconocido❔'
+        object.cpu_info='Desconocido❔'
+        object.memoria_info = 'Desconocido❔'
+        object.disco_info = 'Desconocido❔'
         object.save()
     return JsonResponse({'status': 'True'})
 
 
-@decoradores.logueado
+@decoradores.logueado_admin
 def monitoreo_admin(request):
     """
     Esta función devuelve una respuesta HTML procesada para la vista "monitoreo_admin".

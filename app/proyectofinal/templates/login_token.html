@@ -1,0 +1,67 @@
+{% extends 'basePer.html' %}
+
+{% block titulo %}
+  Login
+{% endblock %}
+
+{% block estilos %}
+<link href="static/css/columnas.css" rel="stylesheet">
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/token.js"></script>
+{% endblock %}
+
+{% block encabezado %}
+  Identifícate 
+{% endblock %}
+
+{% block nav %}
+    {% include 'nav.html' %}
+{% endblock %}
+
+{% block contenido %}
+<body background="/static/images/Imagen-de-fondo-html.jpg"></body>
+
+
+  <form id="formulario" action="/token" method="POST" class="fila">
+    {% csrf_token %} 
+    <div class="col-4"></div>
+    <fieldset class="col-4" style="background-color: rgb(36, 94, 209); font-size: x-large; color: aliceblue;">
+      <legend style="font-size: x-large; color: aliceblue;">Autenticación de usuario</legend>
+      <div class="form-group" class="fila">
+        <div>
+          <label for="token_otp">Token OTP:</label>
+        </div>
+
+        <div>
+            <input type="text" name="token_otp" id="token_otp"  placeholder="Ingresa tu token" class="col-11">
+        </div>
+      </div>
+
+      <br>
+      <button type="submit" class="btn btn-success">Ingresar</button>
+      <button type="button" class="btn btn-success" id="btn-generartoken">Generar token</button>
+    </fieldset>
+    <div class="col-4"></div>
+  </form>
+
+  {% if errores %}
+    <div id="erorres" style="color: white; font-size: medium;" class="fila">
+      <div class="col-4"></div>
+      <ul class="col-4">
+        {% for error in errores %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      <div class="col-4"></div>
+    </div >
+  {% endif %}
+
+{% endblock %}
+
+{% block footer %}
+  <footer style="color: aliceblue;"><br>
+    *Univesidad Veracruzana 2023
+  </footer>
+{% endblock %}
