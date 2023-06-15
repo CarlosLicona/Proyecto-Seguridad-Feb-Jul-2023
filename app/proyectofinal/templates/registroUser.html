@@ -19,12 +19,16 @@ Registro Usuarios
       <img src="/static/images/logoUV.png" alt="" width="30" height="24" class="d-inline-block align-text-top">
       Ir a UV
     </a>
+
+
     <a class="navbar-brand" href="/monitoreo">
       <img src="/static/images/regresar.png" alt="" width="30" height="24" class="d-inline-block align-text-top">
       Regresar
     </a>
   </div>
 </nav>
+
+
 {% endblock %}
 
 {% block contenido %}
@@ -44,7 +48,7 @@ Registro Usuarios
   {% csrf_token %} 
   <div class="col-4"></div>
   <fieldset class="col-4" style="background-color: rgb(36, 94, 209); font-size: x-large; color: aliceblue;">
-    <legend style="font-size: x-large; color: aliceblue;">Registro</legend>
+    <legend style="font-size: x-large; color: aliceblue;">Registro Usuarios</legend>
     <div class="form-group" class="fila">
       <div>
 	<label for="nombre_usuario">Usuario:</label>
